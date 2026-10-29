@@ -18,6 +18,8 @@ The popup does not intercept mouse input. Search, selection, descriptions, and f
 
 ## Installation
 
+Download the release ZIP from [GameBanana](https://gamebanana.com/tools/24712).
+
 Current version: **0.3.2**. Tested with **Lönn 1.0.10 (OlympUI)**.
 
 1. Place the release file `LoennVisualPreviews.zip` in Celeste's `Mods/` directory. Leave it zipped.

@@ -18,6 +18,8 @@
 
 ## 安装
 
+从 [GameBanana](https://gamebanana.com/tools/24712) 下载发行 ZIP。
+
 当前版本：**0.3.2**。已在 **Lönn 1.0.10（OlympUI）** 上验证。
 
 1. 将发行包 `LoennVisualPreviews.zip` 放入 Celeste 的 `Mods/` 目录，无需解压。
