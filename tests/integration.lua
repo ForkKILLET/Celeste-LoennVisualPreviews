@@ -8,7 +8,16 @@ local function wait(seconds)
     local elapsed = 0
     repeat elapsed = elapsed + coroutine.yield() until elapsed >= (seconds or 0.4)
 end
-local function screenshot(name) capture = name; wait(0.1) end
+local function screenshot(name, checkPreview)
+    local image
+    if checkPreview then
+        local p = assert(state.popup, "No popup to capture")
+        image = {x = p.x + p.padding, y = p.y + p.padding + p.titleHeight + p.gap,
+            width = p.imageWidth, height = p.imageHeight}
+    end
+    capture = {name = name, image = image}
+    wait(0.1)
+end
 local function refresh()
     list = windows.windowHandlers.tools.materialList
     state = ui._visualPreviewsHover
@@ -308,16 +317,9 @@ local function checks()
     log(string.format("Vanilla placements: %d passed; %d unavailable", passed, failed))
     assert(passed > 100 and passed / (passed + failed) > 0.9, "Insufficient vanilla preview coverage")
 
-    require("configs").ui.theme.defaultFontSize = 12
-    require("debug_utils").reloadUI(); wait(); refresh()
-    tools.setLayer("entities"); wait(); pick("zipMover#normal"); screenshot("entity-font-12")
-    require("configs").ui.theme.defaultFontSize = 24
-    require("debug_utils").reloadUI(); wait(); refresh()
-    tools.setLayer("entities"); wait()
-    love.window.setMode(1280, 720, {resizable = true}); wait()
-    pick("bonfire#"); screenshot("entity-small-window")
-    log("Fonts 12/24, small window and UI reload")
-
+    -- Keep a real room visible behind the decal demo rather than an off-map camera.
+    require("viewport_handler").moveToPosition(liveRoom.x + liveRoom.width / 2,
+        liveRoom.y + liveRoom.height / 2, 2, true)
     tools.setLayer("decalsFg"); wait()
     list.searchField:setText("0-prologue/house"); wait()
     hover(rowWith("decals/0-prologue/house")); wait(0.5)
@@ -326,7 +328,7 @@ local function checks()
     verifyDelay("decals/0-prologue/house")
     hover(rowWith("decals/0-prologue/house")); wait(0.5)
     popup("decals/0-prologue/house")
-    screenshot("decal-regression")
+    screenshot("decal-regression", true)
     tools.selectTool("brush"); wait()
     assert(not state.popup)
     local icons = 0
@@ -338,6 +340,35 @@ local function checks()
     assert(icons > 0, "Tile icons regressed")
     assert(not require("history").madeChanges, "Map history changed")
     log("Decal and tile regressions; no map edits")
+
+    -- Capture the release demo before changing fonts or window dimensions.
+    tools.selectTool("placement"); wait()
+    require("configs").ui.theme.defaultFontSize = 12
+    require("debug_utils").reloadUI(); wait(); refresh()
+    tools.setLayer("entities"); wait(); pick("zipMover#normal"); screenshot("entity-font-12", true)
+    require("configs").ui.theme.defaultFontSize = 24
+    require("debug_utils").reloadUI(); wait(); refresh()
+    tools.setLayer("entities"); wait()
+    -- Resize the existing SDL window, like a desktop window-manager resize.
+    -- setMode/updateMode can clear Lonn's cached atlas and UI canvases.
+    local ffi = require("ffi")
+    ffi.cdef[[
+        typedef struct SDL_Window SDL_Window;
+        SDL_Window *SDL_GL_GetCurrentWindow(void);
+        void SDL_SetWindowSize(SDL_Window *window, int w, int h);
+    ]]
+    local window = assert(ffi.C.SDL_GL_GetCurrentWindow(), "No current SDL window")
+    ffi.C.SDL_SetWindowSize(window, 1280, 720)
+    wait()
+    local width, height = love.graphics.getDimensions()
+    assert(width == 1280 and height == 720, "Native window resize failed")
+    pick("bonfire#"); screenshot("entity-small-window", true)
+    tools.setLayer("decalsFg"); wait()
+    list.searchField:setText("0-prologue/house"); wait()
+    hover(rowWith("decals/0-prologue/house")); wait(0.5)
+    popup("decals/0-prologue/house")
+    screenshot("decal-small-window", true)
+    log("Fonts 12/24, small window and UI reload; rendered preview pixels verified")
     log("PASS")
     love.event.quit()
 end
@@ -362,9 +393,24 @@ function love.load(...)
     love.draw = function(...)
         draw(...)
         if capture then
-            local filename = checkRoot .. "/" .. capture .. ".png"; capture = nil
+            local pending = capture; capture = nil
+            local filename = checkRoot .. "/" .. pending.name .. ".png"
             love.graphics.captureScreenshot(function(data)
                 local f = assert(io.open(filename, "wb")); f:write(data:encode("png"):getString()); f:close()
+                if pending.image then
+                    local box, colored = pending.image, 0
+                    for y = math.ceil(box.y), math.floor(box.y + box.height - 1), 2 do
+                        for x = math.ceil(box.x), math.floor(box.x + box.width - 1), 2 do
+                            local r, g, b, a = data:getPixel(x, y)
+                            -- These fixtures have colored artwork; an empty
+                            -- checkerboard alone must not count as a preview.
+                            if a > 0.5 and math.max(r, g, b) - math.min(r, g, b) > 0.08 then
+                                colored = colored + 1
+                            end
+                        end
+                    end
+                    assert(colored >= 8, "Preview artwork missing from screenshot: " .. pending.name)
+                end
             end)
         end
     end

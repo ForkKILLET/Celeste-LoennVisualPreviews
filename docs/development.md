@@ -55,6 +55,8 @@ The runner resolves the plugin and Lua checks relative to its own location, so i
 It accepts `--celeste`, `--loenn-archive`, and `--launcher` to override local paths.
 It uses temporary preferences and read-only links to game resources in an isolated Xvfb session.
 It checks vanilla placements, failing custom renderers, settings persistence, hover delays, room/template isolation, UI reloads, and tile/decal previews.
+Preview screenshots are checked for visible artwork, not just the presence of a popup.
+The window-size check resizes the existing SDL window; resetting the display mode can clear Lönn's cached canvases.
 Logs, coverage results, and screenshots are written to a temporary directory printed by the runner.
 
 ## Packaging
