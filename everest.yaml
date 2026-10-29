@@ -1,0 +1,5 @@
+- Name: LoennVisualPreviews
+  Version: 0.3.2
+  Dependencies:
+    - Name: Everest
+      Version: 1.0.0
