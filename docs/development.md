@@ -64,4 +64,4 @@ Logs, coverage results, and screenshots are written to a temporary directory pri
 Follow the Everest [mod packaging guidelines](https://github.com/EverestAPI/Resources/wiki/Mod-Structure#packaging-your-mod-for-publishing).
 The release ZIP must contain `everest.yaml`, `Loenn/`, and the documentation directly at its root, without an enclosing `LoennVisualPreviews/` directory.
 The ZIP also includes `scripts/` and `tests/` so the extracted package contains the integration checks.
-Keep test output and previous release archives outside the ZIP.
+Create the ZIP outside the plugin directory, excluding Git metadata, Python caches, and generated archives.
